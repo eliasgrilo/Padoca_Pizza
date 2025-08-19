@@ -1,507 +1,507 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useRef } from "react";
 
-const yeastSuggestions = {
-  IDY: 0.23,
-  ADY: 0.15,
-  CY: 0.7,
-  SSD: 0.1,
-  LSD: 0.02,
-}
-
-const prefermentSuggestions = {
+const YEAST_SUGGESTIONS = { IDY: 0.23, ADY: 0.15, CY: 0.7, SSD: 0.1, LSD: 0.02 };
+const PREF_SUGGESTIONS = {
   Poolish: { flour: 30, water: 100, yeast: 0.3 },
-  Biga: { flour: 30, water: 50, yeast: 0.1 },
-  Levain: { flour: 20, water: 100, yeast: 0 },
-}
-
-function Stepper({ value, onChange, step = 1, min = 1 }) {
-  return (
-    <div className="stepper">
-      <button onClick={() => onChange(Math.max(min, value - step))}>−</button>
-      <div className="value">{value}</div>
-      <button onClick={() => onChange(value + step)}>+</button>
-    </div>
-  )
-}
-
-function PresetButton({ active, children, onClick }) {
-  return (
-    <div className={`preset ${active ? 'active' : ''}`} onClick={onClick}>
-      {children}
-    </div>
-  )
-}
-
-function numberOr(v, fallback) {
-  const n = parseFloat(v)
-  return Number.isFinite(n) ? n : fallback
-}
+  Biga:    { flour: 30, water: 50,  yeast: 0.1 },
+  Levain:  { flour: 20, water: 100, yeast: 0   },
+};
+const safe = (n, d=0) => Number.isFinite(+n) ? +n : d;
 
 export default function App() {
-  // Core states
-  const [doughBalls, setDoughBalls] = useState(1)
-  const [ballWeight, setBallWeight] = useState(700)
+  // Inputs
+  const [doughBalls, setDoughBalls] = useState(1);
+  const [ballWeight, setBallWeight] = useState(250);
+  const [waterP, setWaterP] = useState(60);
+  const [oilP, setOilP] = useState(0);
+  const [oliveOilP, setOliveOilP] = useState(0);
+  const [saltP, setSaltP] = useState(2.5);
+  const [sugarP, setSugarP] = useState(0);
+  const [rtH, setRtH] = useState(0);
+  const [rtT, setRtT] = useState(25);
+  const [ctH, setCtH] = useState(0);
+  const [ctT, setCtT] = useState(4);
+  const [yeastType, setYeastType] = useState("IDY");
+  const [yeastP, setYeastP] = useState(YEAST_SUGGESTIONS["IDY"]);
+  const [prefType, setPrefType] = useState("None");
+  const [prefFlourP, setPrefFlourP] = useState(0);
+  const [prefWaterP, setPrefWaterP] = useState(0);
+  const [prefYeastP, setPrefYeastP] = useState(0);
 
-  const [waterPercent, setWaterPercent] = useState(60)
-  const [fatsPercent, setFatsPercent] = useState(0)
-  const [saltPercent, setSaltPercent] = useState(2.5)
-  const [sugarPercent, setSugarPercent] = useState(0)
+  // Recipes management
+  const [recipes, setRecipes] = useState([]);
+  const inputFileRef = useRef(null);
 
-  const [rtLeavening, setRtLeavening] = useState(0)
-  const [rtTemp, setRtTemp] = useState(25)
-  const [ctLeavening, setCtLeavening] = useState(0)
-  const [ctTemp, setCtTemp] = useState(4)
-
-  const [yeastType, setYeastType] = useState('IDY')
-  const [yeastPercent, setYeastPercent] = useState(yeastSuggestions['IDY'])
-
-  const [prefermentType, setPrefermentType] = useState('None')
-  const [prefFlourPercent, setPrefFlourPercent] = useState(20)
-  const [prefWaterPercent, setPrefWaterPercent] = useState(100)
-  const [prefYeastPercent, setPrefYeastPercent] = useState(0)
-
-  // Load saves on start
-  const [recipes, setRecipes] = useState(() => {
+  // Load state and recipes from localStorage on mount
+  useEffect(() => {
     try {
-      const raw = localStorage.getItem('savedRecipes')
-      return raw ? JSON.parse(raw) : []
-    } catch { return [] }
-  })
-
-  useEffect(() => {
-    localStorage.setItem('savedRecipes', JSON.stringify(recipes))
-  }, [recipes])
-
-  // Auto-update yeast percent when changing type
-  useEffect(() => {
-    setYeastPercent(yeastSuggestions[yeastType])
-  }, [yeastType])
-
-  // Auto-fill preferment presets
-  const setPreferment = (type) => {
-    setPrefermentType(type)
-    if (type !== 'None') {
-      const s = prefermentSuggestions[type] || { flour: 20, water: 100, yeast: 0 }
-      setPrefFlourPercent(s.flour)
-      setPrefWaterPercent(s.water)
-      setPrefYeastPercent(s.yeast)
+      const saved = JSON.parse(localStorage.getItem("padoca_pizza_state") || "null");
+      if (saved) {
+        setDoughBalls(safe(saved.doughBalls, 1));
+        setBallWeight(safe(saved.ballWeight, 250));
+        setWaterP(safe(saved.waterP, 60));
+        setOilP(safe(saved.oilP, 0));
+        setOliveOilP(safe(saved.oliveOilP, 0));
+        setSaltP(safe(saved.saltP, 2.5));
+        setSugarP(safe(saved.sugarP, 0));
+        setRtH(safe(saved.rtH, 0)); setRtT(safe(saved.rtT, 25));
+        setCtH(safe(saved.ctH, 0)); setCtT(safe(saved.ctT, 4));
+        setYeastType(saved.yeastType || "IDY");
+        setYeastP(safe(saved.yeastP, YEAST_SUGGESTIONS["IDY"]));
+        setPrefType(saved.prefType || "None");
+        setPrefFlourP(safe(saved.prefFlourP, 0));
+        setPrefWaterP(safe(saved.prefWaterP, 0));
+        setPrefYeastP(safe(saved.prefYeastP, 0));
+      }
+      const savedRecipes = JSON.parse(localStorage.getItem("padoca_pizza_recipes") || "null");
+      if (Array.isArray(savedRecipes)) setRecipes(savedRecipes);
+    } catch (e) {
+      console.error("Load error", e);
     }
-  }
+  }, []);
 
-  // Calculations (memoized)
+  // Save app state to localStorage
+  useEffect(() => {
+    const data = {
+      doughBalls, ballWeight, waterP, oilP, oliveOilP, saltP, sugarP,
+      rtH, rtT, ctH, ctT, yeastType, yeastP, prefType, prefFlourP, prefWaterP, prefYeastP
+    };
+    localStorage.setItem("padoca_pizza_state", JSON.stringify(data));
+  }, [doughBalls, ballWeight, waterP, oilP, oliveOilP, saltP, sugarP, rtH, rtT, ctH, ctT, yeastType, yeastP, prefType, prefFlourP, prefWaterP, prefYeastP]);
+
+  // Save recipes when changed
+  useEffect(() => {
+    localStorage.setItem("padoca_pizza_recipes", JSON.stringify(recipes));
+  }, [recipes]);
+
+  useEffect(() => { setYeastP(YEAST_SUGGESTIONS[yeastType] ?? 0); }, [yeastType]);
+  useEffect(() => {
+    if (prefType === "None") { setPrefFlourP(0); setPrefWaterP(0); setPrefYeastP(0); return; }
+    const s = PREF_SUGGESTIONS[prefType] || { flour:0, water:0, yeast:0 };
+    setPrefFlourP(s.flour); setPrefWaterP(s.water); setPrefYeastP(s.yeast);
+  }, [prefType]);
+
   const calc = useMemo(() => {
-    const wP = numberOr(waterPercent, 0) / 100
-    const fP = numberOr(fatsPercent, 0) / 100
-    const sP = numberOr(saltPercent, 0) / 100
-    const suP = numberOr(sugarPercent, 0) / 100
-    const yP = numberOr(yeastPercent, 0) / 100
+    const sumFat = safe(oilP) + safe(oliveOilP);
+    const sumPerc = safe(waterP) + sumFat + safe(saltP) + safe(sugarP) + safe(yeastP);
+    const flourBall = safe(ballWeight) / (1 + sumPerc/100);
+    const waterBall = flourBall * safe(waterP)/100;
+    const oilBall = flourBall * safe(oilP)/100;
+    const oliveBall = flourBall * safe(oliveOilP)/100;
+    const saltBall = flourBall * safe(saltP)/100;
+    const sugarBall = flourBall * safe(sugarP)/100;
+    const yeastBall = flourBall * safe(yeastP)/100;
 
-    const sumP = wP + fP + sP + suP + yP
-    const flour = ballWeight / (1 + sumP)
-    const water = flour * wP
-    const fats = flour * fP
-    const salt = flour * sP
-    const sugar = flour * suP
-    const yeast = flour * yP
-    const totalBall = ballWeight
+    const prefFlour = prefType==='None' ? 0 : flourBall * safe(prefFlourP)/100;
+    const prefWater = prefType==='None' ? 0 : prefFlour * safe(prefWaterP)/100;
+    const prefYeast = prefType==='None' ? 0 : prefFlour * safe(prefYeastP)/100;
 
-    const pfFlourP = prefermentType !== 'None' ? numberOr(prefFlourPercent,0)/100 : 0
-    const pfWaterP = prefermentType !== 'None' ? numberOr(prefWaterPercent,0)/100 : 0
-    const pfYeastP = prefermentType !== 'None' ? numberOr(prefYeastPercent,0)/100 : 0
+    const finalFlour = flourBall - prefFlour;
+    const finalWater = waterBall - prefWater;
+    const finalSalt = saltBall;
+    const finalOil = oilBall;
+    const finalOlive = oliveBall;
+    const finalSugar = sugarBall;
+    const finalYeast = yeastBall - prefYeast;
 
-    const pref_flour = flour * pfFlourP
-    const pref_water = pref_flour * (pfWaterP * 100) / 100 // to keep same math as original
-    const pref_yeast = pref_flour * pfYeastP
-
-    const final_flour = flour - pref_flour
-    const final_water = water - pref_water
-    const final_yeast = yeast - pref_yeast
-    const final_salt = salt
-    const final_fats = fats
-    const final_sugar = sugar
-
-    return {
-      perBall: {
-        flour: Math.round(flour),
-        water: Math.round(water),
-        salt: Math.round(salt),
-        fats: Math.round(fats),
-        sugar: Math.round(sugar),
-        yeast: +(yeast.toFixed(2)),
-        total: Math.round(totalBall),
-      },
-      totals: {
-        flour: Math.round(flour * doughBalls),
-        water: Math.round(water * doughBalls),
-        salt: Math.round(salt * doughBalls),
-        fats: Math.round(fats * doughBalls),
-        sugar: Math.round(sugar * doughBalls),
-        yeast: +(yeast * doughBalls).toFixed(2),
-        dough: Math.round(totalBall * doughBalls),
-      },
-      preferment: prefermentType !== 'None' ? {
-        totals: {
-          flour: Math.round(pref_flour * doughBalls),
-          water: Math.round(pref_water * doughBalls),
-          yeast: +(pref_yeast * doughBalls).toFixed(2),
-        },
-        final: {
-          flour: Math.round(final_flour * doughBalls),
-          water: Math.round(final_water * doughBalls),
-          salt: Math.round(final_salt * doughBalls),
-          fats: Math.round(final_fats * doughBalls),
-          sugar: Math.round(final_sugar * doughBalls),
-          yeast: +(final_yeast * doughBalls).toFixed(2),
-        }
-      } : null
-    }
-  }, [ballWeight, doughBalls, waterPercent, fatsPercent, saltPercent, sugarPercent, yeastPercent, prefermentType, prefFlourPercent, prefWaterPercent, prefYeastPercent])
-
-  // Helpers matching original actions
-  const getCurrentData = () => ({
-    doughBalls, ballWeight, waterPercent, fatsPercent, saltPercent, sugarPercent,
-    rtLeavening, rtTemp, ctLeavening, ctTemp, yeastType, yeastPercent,
-    prefermentType, prefFlourPercent, prefWaterPercent, prefYeastPercent
-  })
-
-  const setCurrentData = (d) => {
-    setDoughBalls(d.doughBalls ?? 1)
-    setBallWeight(d.ballWeight ?? 700)
-    setWaterPercent(d.waterPercent ?? 60)
-    setFatsPercent(d.fatsPercent ?? 0)
-    setSaltPercent(d.saltPercent ?? 2.5)
-    setSugarPercent(d.sugarPercent ?? 0)
-    setRtLeavening(d.rtLeavening ?? 0)
-    setRtTemp(d.rtTemp ?? 25)
-    setCtLeavening(d.ctLeavening ?? 0)
-    setCtTemp(d.ctTemp ?? 4)
-    setYeastType(d.yeastType ?? 'IDY')
-    setYeastPercent(d.yeastPercent ?? yeastSuggestions['IDY'])
-    setPrefermentType(d.prefermentType ?? 'None')
-    if ((d.prefermentType ?? 'None') !== 'None') {
-      setPrefFlourPercent(d.prefFlourPercent ?? 20)
-      setPrefWaterPercent(d.prefWaterPercent ?? 100)
-      setPrefYeastPercent(d.prefYeastPercent ?? 0)
-    }
-  }
+    const byBall = {
+      flour: Math.round(flourBall),
+      water: Math.round(waterBall),
+      salt: Math.round(saltBall),
+      oil: Math.round(oilBall),
+      olive: Math.round(oliveBall),
+      sugar: Math.round(sugarBall),
+      yeast: +(yeastBall.toFixed(2)),
+      total: Math.round(ballWeight)
+    };
+    const totals = {
+      flour: Math.round(flourBall * safe(doughBalls,1)),
+      water: Math.round(waterBall * safe(doughBalls,1)),
+      salt: Math.round(saltBall * safe(doughBalls,1)),
+      oil: Math.round(oilBall * safe(doughBalls,1)),
+      olive: Math.round(oliveBall * safe(doughBalls,1)),
+      sugar: Math.round(sugarBall * safe(doughBalls,1)),
+      yeast: +(yeastBall * safe(doughBalls,1)).toFixed(2),
+      total: Math.round(safe(ballWeight) * safe(doughBalls,1))
+    };
+    const prefTotals = {
+      flour: Math.round(prefFlour * safe(doughBalls,1)),
+      water: Math.round(prefWater * safe(doughBalls,1)),
+      yeast: +(prefYeast * safe(doughBalls,1)).toFixed(2)
+    };
+    const finalTotals = {
+      flour: Math.round(finalFlour * safe(doughBalls,1)),
+      water: Math.round(finalWater * safe(doughBalls,1)),
+      salt: Math.round(finalSalt * safe(doughBalls,1)),
+      oil: Math.round(finalOil * safe(doughBalls,1)),
+      olive: Math.round(finalOlive * safe(doughBalls,1)),
+      sugar: Math.round(finalSugar * safe(doughBalls,1)),
+      yeast: +(finalYeast * safe(doughBalls,1)).toFixed(2)
+    };
+    return { byBall, totals, prefTotals, finalTotals };
+  }, [ballWeight, doughBalls, waterP, oilP, oliveOilP, saltP, sugarP, yeastP, prefType, prefFlourP, prefWaterP, prefYeastP]);
 
   // Recipe actions
   const saveRecipe = () => {
-    const name = window.prompt('Nome da receita:')
-    if (!name || !name.trim()) return
-    setRecipes(prev => [...prev, { name: name.trim(), data: getCurrentData() }])
-  }
+    const name = window.prompt("Nome da receita:");
+    if (!name || !name.trim()) return;
+    const data = {
+      name: name.trim(),
+      data: {
+        doughBalls, ballWeight, waterP, oilP, oliveOilP, saltP, sugarP,
+        rtH, rtT, ctH, ctT, yeastType, yeastP, prefType, prefFlourP, prefWaterP, prefYeastP
+      }
+    };
+    setRecipes(prev => [...prev, data]);
+  };
+
+  const loadRecipe = (i) => {
+    const r = recipes[i];
+    if (!r) return;
+    const d = r.data;
+    setDoughBalls(safe(d.doughBalls,1));
+    setBallWeight(safe(d.ballWeight,250));
+    setWaterP(safe(d.waterP,60));
+    setOilP(safe(d.oilP,0));
+    setOliveOilP(safe(d.oliveOilP,0));
+    setSaltP(safe(d.saltP,2.5));
+    setSugarP(safe(d.sugarP,0));
+    setRtH(safe(d.rtH,0)); setRtT(safe(d.rtT,25));
+    setCtH(safe(d.ctH,0)); setCtT(safe(d.ctT,4));
+    setYeastType(d.yeastType || "IDY");
+    setYeastP(safe(d.yeastP, YEAST_SUGGESTIONS["IDY"]));
+    setPrefType(d.prefType || "None");
+    setPrefFlourP(safe(d.prefFlourP,0));
+    setPrefWaterP(safe(d.prefWaterP,0));
+    setPrefYeastP(safe(d.prefYeastP,0));
+    window.alert(`Receita "${r.name}" carregada.`);
+  };
 
   const renameRecipe = (i) => {
-    const newName = window.prompt('Novo nome para a receita:', recipes[i].name)
-    if (!newName || !newName.trim()) return
-    setRecipes(prev => {
-      const nx = [...prev]
-      nx[i] = { ...nx[i], name: newName.trim() }
-      return nx
-    })
-  }
+    const nr = window.prompt("Novo nome:", recipes[i]?.name || "");
+    if (!nr || !nr.trim()) return;
+    setRecipes(prev => prev.map((r,idx)=> idx===i ? {...r, name: nr.trim()} : r));
+  };
 
   const deleteRecipe = (i) => {
-    if (!window.confirm('Tem certeza que deseja deletar esta receita?')) return
-    setRecipes(prev => prev.filter((_, idx) => idx !== i))
-  }
+    if (!window.confirm("Deletar receita?")) return;
+    setRecipes(prev => prev.filter((_,idx)=> idx!==i));
+  };
 
-  const exportRecipeCsv = () => {
-    const name = window.prompt('Nome para exportar:')
-    if (!name || !name.trim()) return
-    const d = getCurrentData()
-    let csv = 'name,doughBalls,ballWeight,waterPercent,fatsPercent,saltPercent,rtLeavening,rtTemp,ctLeavening,ctTemp,yeastType,yeastPercent,sugarPercent,prefermentType,prefFlourPercent,prefWaterPercent,prefYeastPercent\n'
-    csv += `${name.trim()},${d.doughBalls},${d.ballWeight},${d.waterPercent},${d.fatsPercent},${d.saltPercent},${d.rtLeavening},${d.rtTemp},${d.ctLeavening},${d.ctTemp},${d.yeastType},${d.yeastPercent},${d.sugarPercent},${d.prefermentType},${d.prefFlourPercent},${d.prefWaterPercent},${d.prefYeastPercent}\n`
-    download('recipe.csv', csv)
-  }
+  // CSV export single recipe
+  const exportRecipeCsv = (i) => {
+    const r = recipes[i];
+    if (!r) { window.alert("Selecione uma receita válida."); return; }
+    const d = r.data;
+    const header = ["name","doughBalls","ballWeight","waterP","oilP","oliveOilP","saltP","sugarP","rtH","rtT","ctH","ctT","yeastType","yeastP","prefType","prefFlourP","prefWaterP","prefYeastP"];
+    const row = [r.name, d.doughBalls, d.ballWeight, d.waterP, d.oilP, d.oliveOilP, d.saltP, d.sugarP, d.rtH, d.rtT, d.ctH, d.ctT, d.yeastType, d.yeastP, d.prefType, d.prefFlourP, d.prefWaterP, d.prefYeastP];
+    const csv = header.join(",") + "\n" + row.join(",");
+    downloadFile(csv, `${r.name.replace(/\s+/g,"_")}.csv`);
+  };
 
   const exportAllCsv = () => {
-    if (!recipes.length) { window.alert('Nenhuma receita para exportar.'); return }
-    let csv = 'name,doughBalls,ballWeight,waterPercent,fatsPercent,saltPercent,rtLeavening,rtTemp,ctLeavening,ctTemp,yeastType,yeastPercent,sugarPercent,prefermentType,prefFlourPercent,prefWaterPercent,prefYeastPercent\n'
-    recipes.forEach(r => {
-      const d = r.data
-      csv += `${r.name},${d.doughBalls},${d.ballWeight},${d.waterPercent},${d.fatsPercent},${d.saltPercent},${d.rtLeavening},${d.rtTemp},${d.ctLeavening},${d.ctTemp},${d.yeastType},${d.yeastPercent},${d.sugarPercent||0},${d.prefermentType||'None'},${d.prefFlourPercent||0},${d.prefWaterPercent||0},${d.prefYeastPercent||0}\n`
-    })
-    download('all_recipes.csv', csv)
-  }
+    if (!recipes.length) { window.alert("Nenhuma receita salva."); return; }
+    const header = ["name","doughBalls","ballWeight","waterP","oilP","oliveOilP","saltP","sugarP","rtH","rtT","ctH","ctT","yeastType","yeastP","prefType","prefFlourP","prefWaterP","prefYeastP"];
+    const lines = recipes.map(r => {
+      const d = r.data;
+      return [r.name, d.doughBalls, d.ballWeight, d.waterP, d.oilP, d.oliveOilP, d.saltP, d.sugarP, d.rtH, d.rtT, d.ctH, d.ctT, d.yeastType, d.yeastP, d.prefType, d.prefFlourP, d.prefWaterP, d.prefYeastP].join(",");
+    });
+    const csv = header.join(",") + "\n" + lines.join("\n");
+    downloadFile(csv, `padoca_recipes_export.csv`);
+  };
 
-  const download = (filename, text) => {
-    const a = document.createElement('a')
-    a.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text))
-    a.setAttribute('download', filename)
-    a.style.display = 'none'
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-  }
+  const downloadFile = (text, filename) => {
+    const blob = new Blob([text], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
 
+  // Import CSV (simple parser expecting header as above)
+  const handleImport = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = String(e.target.result || "");
+      const lines = text.split(/\r?\n/).filter(l=>l.trim());
+      if (!lines.length) return;
+      const header = lines[0].split(",");
+      const rows = lines.slice(1);
+      const imported = rows.map(row => {
+        const vals = row.split(",");
+        const obj = {};
+        header.forEach((h, idx) => { obj[h]= vals[idx]; });
+        // normalize
+        const data = {
+          doughBalls: safe(parseFloat(obj.doughBalls)||0,1),
+          ballWeight: safe(parseFloat(obj.ballWeight)||0,250),
+          waterP: safe(parseFloat(obj.waterP)||0,0),
+          oilP: safe(parseFloat(obj.oilP)||0,0),
+          oliveOilP: safe(parseFloat(obj.oliveOilP)||0,0),
+          saltP: safe(parseFloat(obj.saltP)||0,0),
+          sugarP: safe(parseFloat(obj.sugarP)||0,0),
+          rtH: safe(parseFloat(obj.rtH)||0,0),
+          rtT: safe(parseFloat(obj.rtT)||0,0),
+          ctH: safe(parseFloat(obj.ctH)||0,0),
+          ctT: safe(parseFloat(obj.ctT)||0,0),
+          yeastType: obj.yeastType || 'IDY',
+          yeastP: safe(parseFloat(obj.yeastP)||0,0),
+          prefType: obj.prefType || 'None',
+          prefFlourP: safe(parseFloat(obj.prefFlourP)||0,0),
+          prefWaterP: safe(parseFloat(obj.prefWaterP)||0,0),
+          prefYeastP: safe(parseFloat(obj.prefYeastP)||0,0)
+        };
+        return { name: obj.name || 'Imported', data };
+      });
+      setRecipes(prev => [...prev, ...imported]);
+      window.alert(`Importadas ${imported.length} receitas.`);
+    };
+    reader.readAsText(file);
+  };
+
+  // Tools
   const fracionarMassa = () => {
-    let total = window.prompt('Informe o peso total da massa (g):')
-    const n = parseFloat(total)
-    if (!Number.isFinite(n) || n <= 0) { window.alert('Valor inválido!'); return }
-    const num = Math.floor(n / ballWeight)
-    const rem = n % ballWeight
-    window.alert(`Você pode fracionar em ${num} bolas de ${ballWeight}g cada, com sobra de ${rem.toFixed(1)}g.`)
-  }
+    const total = window.prompt("Informe o peso total da massa (g):");
+    const n = parseFloat(total);
+    if (!Number.isFinite(n) || n<=0) { window.alert("Valor inválido"); return; }
+    const num = Math.floor(n / ballWeight);
+    const rem = n % ballWeight;
+    window.alert(`Pode fracionar em ${num} bolas de ${ballWeight}g, sobra ${rem.toFixed(1)}g`);
+  };
 
   const calculoReverso = () => {
-    let totalFlour = window.prompt('Informe a quantidade total de farinha (g):')
-    const n = parseFloat(totalFlour)
-    if (!Number.isFinite(n) || n <= 0) { window.alert('Valor inválido!'); return }
-    const sumP = waterPercent/100 + fatsPercent/100 + saltPercent/100 + sugarPercent/100 + yeastPercent/100
-    const flourPerBall = n / doughBalls
-    const newBallWeight = flourPerBall * (1 + sumP)
-    setBallWeight(Math.round(newBallWeight))
-  }
+    const totalFlour = window.prompt("Informe a quantidade total de farinha (g):");
+    const n = parseFloat(totalFlour);
+    if (!Number.isFinite(n) || n<=0) { window.alert("Valor inválido"); return; }
+    const sumP = (safe(waterP)+safe(oilP)+safe(oliveOilP)+safe(saltP)+safe(sugarP)+safe(yeastP))/100;
+    const flourPerBall = n / doughBalls;
+    const newBall = Math.round(flourPerBall * (1 + sumP));
+    setBallWeight(newBall);
+    window.alert(`Novo peso por bola calculado: ${newBall} g`);
+  };
 
   const suggestYeast = () => {
-    const rtH = numberOr(rtLeavening,0)
-    const ctH = numberOr(ctLeavening,0)
-    const totalTime = (rtH + ctH) || 24
-    const rtT = numberOr(rtTemp,25)
-    const ctT = numberOr(ctTemp,4)
-    const avgTemp = (rtH * rtT + ctH * ctT) / totalTime || 20
-    let baseYeast = 0.6 / totalTime
-    baseYeast *= Math.pow(1.035, 20 - avgTemp)
-    baseYeast = Math.max(0.02, Math.min(1, baseYeast))
-    setYeastPercent(+baseYeast.toFixed(2))
-    window.alert(`Sugestão de % de fermento baseada em tempo e temperatura: ${baseYeast.toFixed(2)}%`)
-  }
+    const totalTime = (safe(rtH)+safe(ctH)) || 24;
+    const avgTemp = ((safe(rtH)*safe(rtT)) + (safe(ctH)*safe(ctT))) / (safe(rtH)+safe(ctH) || 1);
+    let base = 0.6 / totalTime;
+    base *= Math.pow(1.035, 20 - avgTemp);
+    base = Math.max(0.02, Math.min(1, base));
+    setYeastP(+base.toFixed(2));
+    window.alert(`Sugestão de fermento: ${base.toFixed(2)}%`);
+  };
 
   const generateInstructions = () => {
-    const d = getCurrentData()
-    const flour = calc.totals.flour
-    const water = calc.totals.water
-    const salt = calc.totals.salt
-    const fats = calc.totals.fats
-    const sugar = calc.totals.sugar
-    const yeast = calc.totals.yeast
-    let steps = 'Receita de Massa de Pizza\\n\\n'
-    if (prefermentType !== 'None' && calc.preferment) {
-      const pf = calc.preferment.totals
-      steps += `1. Prepare o preferment (${prefermentType}): Misture ${pf.flour}g farinha, ${pf.water}g água, ${(+pf.yeast).toFixed(2)}g fermento. Deixe fermentar por 4-12 horas dependendo do tipo.\\n`
-      const final = calc.preferment.final
-      steps += `2. Massa final: Misture ${final.flour}g farinha, ${final.water}g água, ${final.salt}g sal, ${final.fats}g gordura, ${final.sugar}g açúcar, ${(+final.yeast).toFixed(2)}g fermento, e o prefermento.\\n`
+    const d = { doughBalls, ballWeight, waterP, oilP, oliveOilP, saltP, sugarP, yeastP, prefType };
+    let steps = `Receita — ${doughBalls} bolas de ${ballWeight}g\n\n`;
+    if (prefType!=='None') {
+      steps += `1) Prepare prefermento (${prefType}) com ${calc.prefTotals.flour}g farinha, ${calc.prefTotals.water}g água, ${calc.prefTotals.yeast}g fermento.\n`;
+      steps += `2) Misture a massa final com ${calc.finalTotals.flour}g farinha, ${calc.finalTotals.water}g água e demais ingredientes.\n`;
     } else {
-      steps += `1. Misture todos os ingredientes: ${flour}g farinha, ${water}g água, ${salt}g sal, ${fats}g gordura, ${sugar}g açúcar, ${(+yeast).toFixed(2)}g fermento.\\n`
+      steps += `1) Misture todos os ingredientes: ${calc.totals.flour}g farinha, ${calc.totals.water}g água, ${calc.totals.yeast}g fermento, etc.\n`;
     }
-    steps += '3. Amasse até formar uma massa homogênea e elástica (10-15 minutos).\\n'
-    steps += `4. Deixe levedar ${d.rtLeavening}h a ${d.rtTemp}°C, depois ${d.ctLeavening}h a ${d.ctTemp}°C.\\n`
-    steps += `5. Divida em ${d.doughBalls} bolas de aproximadamente ${d.ballWeight}g cada.\\n`
-    steps += '6. Deixe descansar por 30-60 minutos antes de abrir e assar.\\n'
-    steps += 'Dica: Asse em forno quente (250-300°C) por 8-12 minutos.'
-    window.alert(steps)
-  }
+    steps += `3) Modelar, descansar e assar. Tempo RT: ${rtH}h a ${rtT}°C, CT: ${ctH}h a ${ctT}°C.\n`;
+    window.alert(steps);
+  };
 
   const nutritionEstimate = () => {
-    const flour = calc.perBall.flour
-    const fats = calc.perBall.fats
-    const sugar = calc.perBall.sugar
-    const yeast = calc.perBall.yeast
-    const calPerBall = Math.round(flour * 3.5 + fats * 9 + sugar * 4 + yeast * 3)
-    const total = calPerBall * doughBalls
-    window.alert(`Estimativa nutricional aproximada:\\nPor bola: ${calPerBall} kcal\\nTotal: ${total} kcal\\n( Baseado em farinha 350kcal/100g, gordura 900kcal/100g, açúcar 400kcal/100g, fermento 300kcal/100g. Valores aproximados.)`)
-  }
+    const calFlour = 3.5; // per g
+    const calFat = 9; // per g
+    const calSugar = 4;
+    const flour = calc.byBall.flour;
+    const fat = calc.byBall.oil + calc.byBall.olive;
+    const sugar = calc.byBall.sugar;
+    const yeast = calc.byBall.yeast;
+    const kcal = Math.round(flour*calFlour + fat*calFat + sugar*calSugar + yeast*3);
+    window.alert(`Estimativa por bola: ${kcal} kcal`);
+  };
+
+  // Helpers UI
+  const handleFileInput = (e) => { const f = e.target.files?.[0]; if(f) handleImport(f); e.target.value = ''; }
+  const importClick = () => { inputFileRef.current?.click(); }
 
   return (
     <div className="app">
-      <header>
-        <h1>PizzApp — Calculadora de Massa</h1>
-      </header>
-
+      <header><h1>Padoca Pizza — Calculadora</h1></header>
       <div className="grid">
-        {/* Left card: Controls */}
-        <div className="card">
-          <div className="label">Dough Balls</div>
-          <Stepper value={doughBalls} onChange={setDoughBalls} />
-
-          <div className="label">Ball Weight (g)</div>
-          <Stepper value={ballWeight} onChange={setBallWeight} step={50} />
-
-          <div className="label">Water (%)</div>
-          <input type="number" value={waterPercent} onChange={e=>setWaterPercent(numberOr(e.target.value,0))} step="1" min="0" />
-
-          <div className="percent">
-            <div className="label">Fats (%)</div>
-            <input type="number" className="small-input" value={fatsPercent} onChange={e=>setFatsPercent(numberOr(e.target.value,0))} step="0.1" min="0" />
-            <div className="label">Salt (%)</div>
-            <input type="number" className="small-input" value={saltPercent} onChange={e=>setSaltPercent(numberOr(e.target.value,0))} step="0.1" min="0" />
-          </div>
-
-          <div className="percent">
-            <div className="label">Sugar (%)</div>
-            <input type="number" className="small-input" value={sugarPercent} onChange={e=>setSugarPercent(numberOr(e.target.value,0))} step="0.1" min="0" />
-          </div>
-
-          <div className="percent">
-            <div className="label">RT leavening (h)</div>
-            <input type="number" className="small-input" value={rtLeavening} onChange={e=>setRtLeavening(numberOr(e.target.value,0))} step="1" min="0" />
-            <div className="label">RT °C</div>
-            <input type="number" className="small-input" value={rtTemp} onChange={e=>setRtTemp(numberOr(e.target.value,0))} step="1" min="0" />
-          </div>
-
-          <div className="percent">
-            <div className="label">CT leavening (h)</div>
-            <input type="number" className="small-input" value={ctLeavening} onChange={e=>setCtLeavening(numberOr(e.target.value,0))} step="1" min="0" />
-            <div className="label">CT °C</div>
-            <input type="number" className="small-input" value={ctTemp} onChange={e=>setCtTemp(numberOr(e.target.value,0))} step="1" min="0" />
-          </div>
-
-          <div className="label">Yeast Type</div>
-          <div className="yeast-presets">
-            {Object.keys(yeastSuggestions).map(k => (
-              <PresetButton key={k} active={yeastType===k} onClick={()=>setYeastType(k)}>{k}</PresetButton>
-            ))}
-          </div>
-
-          <div className="label">Yeast (%)</div>
-          <input type="number" value={yeastPercent} onChange={e=>setYeastPercent(numberOr(e.target.value,0))} step="0.01" min="0" />
-          <div className="small">Percentual sobre a farinha (editar)</div>
-
-          <div className="label">Tipo de Fermentação</div>
-          <div className="yeast-presets preferment-presets">
-            {['None','Poolish','Biga','Levain'].map(t => (
-              <PresetButton key={t} active={prefermentType===t} onClick={()=>setPreferment(t)}>
-                {t==='None'?'Nenhum':t}
-              </PresetButton>
-            ))}
-          </div>
-
-          {prefermentType !== 'None' && (
-            <div id="prefermentOptions">
-              <div className="label">Farinha Preferment (% total farinha)</div>
-              <input type="number" value={prefFlourPercent} onChange={e=>setPrefFlourPercent(numberOr(e.target.value,0))} step="1" min="0" max="100" />
-              <div className="label">Água Preferment (% pref farinha)</div>
-              <input type="number" value={prefWaterPercent} onChange={e=>setPrefWaterPercent(numberOr(e.target.value,0))} step="1" min="0" />
-              <div className="label">Fermento Preferment (% pref farinha)</div>
-              <input type="number" value={prefYeastPercent} onChange={e=>setPrefYeastPercent(numberOr(e.target.value,0))} step="0.01" min="0" />
+        <div className="card form">
+          {/* Inputs */}
+          <div className="row"><div className="label">Dough Balls</div>
+            <div className="stepper">
+              <button className="btn" onClick={()=>setDoughBalls(v=>Math.max(1,v-1))}>−</button>
+              <div className="value">{doughBalls}</div>
+              <button className="btn" onClick={()=>setDoughBalls(v=>v+1)}>+</button>
             </div>
+          </div>
+
+          <div className="row"><div className="label">Ball Weight (g)</div>
+            <div className="stepper">
+              <button className="btn" onClick={()=>setBallWeight(v=>Math.max(20,v-10))}>−</button>
+              <div className="value">{ballWeight}</div>
+              <button className="btn" onClick={()=>setBallWeight(v=>v+10)}>+</button>
+            </div>
+          </div>
+
+          <div className="row"><div className="label">Tipo de fermentação</div>
+            <div className="preset-group">
+              {['None','Poolish','Biga','Levain'].map(t=>(
+                <button key={t} className={`preset ${t===prefType ? 'active':''}`} onClick={()=>setPrefType(t)}>{t}</button>
+              ))}
+            </div>
+          </div>
+
+          {prefType!=='None' && (
+            <>
+              <div className="row"><div className="label">Farinha Pref (% total farinha)</div>
+                <input className="number" type="number" value={prefFlourP} onChange={e=>setPrefFlourP(safe(e.target.value,0))} />
+              </div>
+              <div className="row"><div className="label">Água Pref (% pref farinha)</div>
+                <input className="number" type="number" value={prefWaterP} onChange={e=>setPrefWaterP(safe(e.target.value,0))} />
+              </div>
+              <div className="row"><div className="label">Fermento Pref (% pref farinha)</div>
+                <input className="number" type="number" step="0.01" value={prefYeastP} onChange={e=>setPrefYeastP(safe(e.target.value,0))} />
+              </div>
+            </>
           )}
 
-          <div className="label">Salvar / Carregar receitas</div>
-          <div className="actions">
-            <button className="btn" onClick={saveRecipe}>Salvar receita</button>
-            <label className="btn" htmlFor="importFile">Importar CSV</label>
-            <input type="file" id="importFile" accept=".csv" style={{display:'none'}} onChange={(e)=>{
-              const file = e.target.files?.[0]; if(!file) return;
-              const reader = new FileReader();
-              reader.onload = (ev)=>{
-                const csv = String(ev.target.result);
-                const lines = csv.split(/\r?\n/);
-                // expect header line 0
-                for(let i=1;i<lines.length;i++){
-                  if(lines[i].trim()==='') continue;
-                  const vals = lines[i].split(',');
-                  const data = {
-                    doughBalls: parseInt(vals[1]),
-                    ballWeight: parseFloat(vals[2]),
-                    waterPercent: parseFloat(vals[3]),
-                    fatsPercent: parseFloat(vals[4]),
-                    saltPercent: parseFloat(vals[5]),
-                    rtLeavening: parseFloat(vals[6]),
-                    rtTemp: parseFloat(vals[7]),
-                    ctLeavening: parseFloat(vals[8]),
-                    ctTemp: parseFloat(vals[9]),
-                    yeastType: vals[10],
-                    yeastPercent: parseFloat(vals[11]),
-                    sugarPercent: parseFloat(vals[12] || 0),
-                    prefermentType: vals[13] || 'None',
-                    prefFlourPercent: parseFloat(vals[14] || 0),
-                    prefWaterPercent: parseFloat(vals[15] || 0),
-                    prefYeastPercent: parseFloat(vals[16] || 0),
-                  }
-                  setRecipes(prev => [...prev, { name: vals[0], data }])
-                }
-              };
-              reader.readAsText(file);
-            }} />
-            <button className="btn" onClick={exportRecipeCsv}>Exportar receita (CSV)</button>
-            <button className="btn" onClick={exportAllCsv}>Exportar todas (CSV)</button>
-            <button className="btn" onClick={()=>window.print()}>Imprimir</button>
-            <button className="btn" onClick={()=>{ window.alert('Use a função Imprimir e salve como PDF no navegador.'); window.print(); }}>Exportar PDF</button>
+          <div className="row"><div className="label">Water (%)</div>
+            <input className="number" type="number" value={waterP} onChange={e=>setWaterP(safe(e.target.value,0))} />
+          </div>
+          <div className="row"><div className="label">Oil (%)</div>
+            <input className="number" type="number" value={oilP} onChange={e=>setOilP(safe(e.target.value,0))} />
+          </div>
+          <div className="row"><div className="label">Olive Oil (%)</div>
+            <input className="number" type="number" value={oliveOilP} onChange={e=>setOliveOilP(safe(e.target.value,0))} />
+          </div>
+          <div className="row"><div className="label">Salt (%)</div>
+            <input className="number" type="number" value={saltP} onChange={e=>setSaltP(safe(e.target.value,0))} />
+          </div>
+          <div className="row"><div className="label">Sugar (%)</div>
+            <input className="number" type="number" value={sugarP} onChange={e=>setSugarP(safe(e.target.value,0))} />
           </div>
 
-          <div className="label">Receitas salvas</div>
-          <div id="recipeList" className="recipe-list">
-            {recipes.length===0 ? 'Nenhuma receita salva.' : recipes.map((r,i)=>(
-              <div className="row-between" key={i}>
-                <span>{r.name}</span>
-                <div>
-                  <button onClick={()=>setCurrentData(r.data)}>Carregar</button>
-                  <button onClick={()=>renameRecipe(i)}>Renomear</button>
-                  <button onClick={()=>deleteRecipe(i)}>Deletar</button>
-                </div>
-              </div>
-            ))}
+          <div className="row"><div className="label">RT leavening (h)</div>
+            <input className="number" type="number" value={rtH} onChange={e=>setRtH(safe(e.target.value,0))} />
+          </div>
+          <div className="row"><div className="label">RT °C</div>
+            <input className="number" type="number" value={rtT} onChange={e=>setRtT(safe(e.target.value,25))} />
+          </div>
+          <div className="row"><div className="label">CT leavening (h)</div>
+            <input className="number" type="number" value={ctH} onChange={e=>setCtH(safe(e.target.value,0))} />
+          </div>
+          <div className="row"><div className="label">CT °C</div>
+            <input className="number" type="number" value={ctT} onChange={e=>setCtT(safe(e.target.value,4))} />
           </div>
 
-          <div className="label">Ferramentas</div>
-          <div className="actions">
-            <button className="btn secondary" onClick={fracionarMassa}>Fracionar massa</button>
-            <button className="btn secondary" onClick={calculoReverso}>Cálculo reverso (a partir da farinha)</button>
-            <button className="btn secondary" onClick={suggestYeast}>Sugerir % Fermento</button>
-            <button className="btn secondary" onClick={generateInstructions}>Gerar Instruções</button>
-            <button className="btn secondary" onClick={nutritionEstimate}>Estimativa Nutricional</button>
+          <div className="row"><div className="label">Yeast Type</div>
+            <div className="preset-group">{Object.keys(YEAST_SUGGESTIONS).map(t=>(
+              <button key={t} className={`preset ${t===yeastType?'active':''}`} onClick={()=>setYeastType(t)}>{t}</button>
+            ))}</div>
+          </div>
+          <div className="row"><div className="label">Yeast (%) <span className="small-note">(editável)</span></div>
+            <input className="number" type="number" step="0.01" value={yeastP} onChange={e=>setYeastP(safe(e.target.value,0))} />
+          </div>
+
+          {/* Save/Load UI */}
+          <div className="row">
+            <div className="label">Salvar / Carregar receitas</div>
+            <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+              <button className="preset" onClick={saveRecipe}>Salvar receita</button>
+              <button className="preset" onClick={importClick}>Importar CSV</button>
+              <input ref={inputFileRef} type="file" accept=".csv" style={{display:'none'}} onChange={handleFileInput} />
+              <button className="preset" onClick={exportAllCsv}>Exportar todas (CSV)</button>
+            </div>
+          </div>
+
+          <div className="row"><div className="label">Receitas Salvas</div>
+            <div>
+              {recipes.length===0 ? <div className="small-note">Nenhuma receita salva.</div> :
+                recipes.map((r,i) => (
+                  <div key={i} style={{display:'flex', justifyContent:'space-between', gap:8, alignItems:'center', padding:6, borderBottom:'1px dashed var(--border)'}}>
+                    <div style={{fontWeight:600}}>{r.name}</div>
+                    <div style={{display:'flex', gap:6}}>
+                      <button className="preset" onClick={()=>loadRecipe(i)}>Carregar</button>
+                      <button className="preset" onClick={()=>exportRecipeCsv(i)}>Exportar</button>
+                      <button className="preset" onClick={()=>renameRecipe(i)}>Renomear</button>
+                      <button className="preset" onClick={()=>deleteRecipe(i)}>Deletar</button>
+                    </div>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+
+          {/* Tools */}
+          <div className="row">
+            <div className="label">Ferramentas</div>
+            <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+              <button className="preset" onClick={fracionarMassa}>Fracionar massa</button>
+              <button className="preset" onClick={calculoReverso}>Cálculo reverso</button>
+              <button className="preset" onClick={suggestYeast}>Sugerir % Fermento</button>
+              <button className="preset" onClick={generateInstructions}>Gerar Instruções</button>
+              <button className="preset" onClick={nutritionEstimate}>Estimativa Nutricional</button>
+            </div>
           </div>
         </div>
 
-        {/* Right card: Results */}
-        <div className="card print-area">
-          <div className="label">Resultados por bola <span className="small">Arredondados (g)</span></div>
-          <p className="small">Valores atualizam ao vivo</p>
-          <div className="results">
-            <div className="pill">Farinha: <span id="flourPerBall">{calc.perBall.flour}</span> g</div>
-            <div className="pill">Água: <span id="waterPerBall">{calc.perBall.water}</span> g</div>
-            <div className="pill">Sal: <span id="saltPerBall">{calc.perBall.salt}</span> g</div>
-            <div className="pill">Gordura: <span id="fatsPerBall">{calc.perBall.fats}</span> g</div>
-            <div className="pill">Açúcar: <span id="sugarPerBall">{calc.perBall.sugar}</span> g</div>
-            <div className="pill">Fermento: <span id="yeastPerBall">{calc.perBall.yeast}</span> g</div>
-            <div className="pill">Total bola: <span id="totalPerBall">{calc.perBall.total}</span> g</div>
-          </div>
+        <div className="card">
+          <div className="results-grid">
+            <div className="block">
+              <div className="title">Resultados por bola (g)</div>
+              <div className="item"><span>Farinha</span><span>{calc.byBall.flour}</span></div>
+              <div className="item"><span>Água</span><span>{calc.byBall.water}</span></div>
+              <div className="item"><span>Sal</span><span>{calc.byBall.salt}</span></div>
+              <div className="item"><span>Óleo</span><span>{calc.byBall.oil}</span></div>
+              <div className="item"><span>Azeite</span><span>{calc.byBall.olive}</span></div>
+              <div className="item"><span>Açúcar</span><span>{calc.byBall.sugar}</span></div>
+              <div className="item"><span>Fermento</span><span>{calc.byBall.yeast}</span></div>
+              <div className="item total"><span>Total bola</span><span>{calc.byBall.total}</span></div>
+            </div>
 
-          <div className="label">Resultados totais</div>
-          <div className="results">
-            <div className="pill">Farinha total: <span id="flourTotal">{calc.totals.flour}</span> g</div>
-            <div className="pill">Água total: <span id="waterTotal">{calc.totals.water}</span> g</div>
-            <div className="pill">Sal total: <span id="saltTotal">{calc.totals.salt}</span> g</div>
-            <div className="pill">Gordura total: <span id="fatsTotal">{calc.totals.fats}</span> g</div>
-            <div className="pill">Açúcar total: <span id="sugarTotal">{calc.totals.sugar}</span> g</div>
-            <div className="pill">Fermento total: <span id="yeastTotal">{calc.totals.yeast}</span> g</div>
-            <div className="pill">Massa total: <span id="totalDough">{calc.totals.dough}</span> g</div>
-          </div>
+            <div className="block">
+              <div className="title">Resultados totais</div>
+              <div className="item"><span>Farinha</span><span>{calc.totals.flour}</span></div>
+              <div className="item"><span>Água</span><span>{calc.totals.water}</span></div>
+              <div className="item"><span>Sal</span><span>{calc.totals.salt}</span></div>
+              <div className="item"><span>Óleo</span><span>{calc.totals.oil}</span></div>
+              <div className="item"><span>Azeite</span><span>{calc.totals.olive}</span></div>
+              <div className="item"><span>Açúcar</span><span>{calc.totals.sugar}</span></div>
+              <div className="item"><span>Fermento</span><span>{calc.totals.yeast}</span></div>
+              <div className="item total"><span>Massa total</span><span>{calc.totals.total}</span></div>
+            </div>
 
-          {calc.preferment && (
-            <>
-              <div id="prefermentResults">
-                <div className="label">Preferment (totais)</div>
-                <div className="results">
-                  <div className="pill">Farinha: <span id="prefFlourTotal">{calc.preferment.totals.flour}</span> g</div>
-                  <div className="pill">Água: <span id="prefWaterTotal">{calc.preferment.totals.water}</span> g</div>
-                  <div className="pill">Fermento: <span id="prefYeastTotal">{calc.preferment.totals.yeast}</span> g</div>
+            {prefType!=='None' && (
+              <>
+                <div className="block">
+                  <div className="title">Preferment (totais)</div>
+                  <div className="item"><span>Farinha</span><span>{calc.prefTotals.flour}</span></div>
+                  <div className="item"><span>Água</span><span>{calc.prefTotals.water}</span></div>
+                  <div className="item"><span>Fermento</span><span>{calc.prefTotals.yeast}</span></div>
                 </div>
-                <div className="label">Massa Final (totais)</div>
-                <div className="results">
-                  <div className="pill">Farinha: <span id="finalFlourTotal">{calc.preferment.final.flour}</span> g</div>
-                  <div className="pill">Água: <span id="finalWaterTotal">{calc.preferment.final.water}</span> g</div>
-                  <div className="pill">Sal: <span id="finalSaltTotal">{calc.preferment.final.salt}</span> g</div>
-                  <div className="pill">Gordura: <span id="finalFatsTotal">{calc.preferment.final.fats}</span> g</div>
-                  <div className="pill">Açúcar: <span id="finalSugarTotal">{calc.preferment.final.sugar}</span> g</div>
-                  <div className="pill">Fermento: <span id="finalYeastTotal">{calc.preferment.final.yeast}</span> g</div>
+                <div className="block">
+                  <div className="title">Massa final (totais)</div>
+                  <div className="item"><span>Farinha</span><span>{calc.finalTotals.flour}</span></div>
+                  <div className="item"><span>Água</span><span>{calc.finalTotals.water}</span></div>
+                  <div className="item"><span>Sal</span><span>{calc.finalTotals.salt}</span></div>
+                  <div className="item"><span>Óleo</span><span>{calc.finalTotals.oil}</span></div>
+                  <div className="item"><span>Azeite</span><span>{calc.finalTotals.olive}</span></div>
+                  <div className="item"><span>Açúcar</span><span>{calc.finalTotals.sugar}</span></div>
+                  <div className="item"><span>Fermento</span><span>{calc.finalTotals.yeast}</span></div>
                 </div>
-              </div>
-              <div className="footer-note">Cálculo: Farinha = Peso da bola / (1 + soma dos percentuais). Ingredientes = Farinha × percentual.</div>
-              <div className="footer-note">Sugestões: IDY ≈ 0.23%, ADY ≈ 0.15%, CY ≈ 0.7%, SSD ≈ 0.1%, LSD ≈ 0.02%.</div>
-            </>
-          )}
-          {!calc.preferment && (
-            <>
-              <div className="footer-note">Cálculo: Farinha = Peso da bola / (1 + soma dos percentuais). Ingredientes = Farinha × percentual.</div>
-              <div className="footer-note">Sugestões: IDY ≈ 0.23%, ADY ≈ 0.15%, CY ≈ 0.7%, SSD ≈ 0.1%, LSD ≈ 0.02%.</div>
-            </>
-          )}
+              </>
+            )}
+          </div>
+          <footer>
+            <div>Farinha = Peso da bola ÷ (1 + soma dos percentuais)</div>
+            <div>Ingredientes = Farinha × percentual</div>
+            <div>Sugestões: IDY≈0.23%, ADY≈0.15%, CY≈0.7%, SSD≈0.1%, LSD≈0.02%</div>
+          </footer>
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,0 +1,41 @@
+:root{
+  --bg: #f6f7fb;
+  --text: #222;
+  --card: #ffffff;
+  --muted: #6b7280;
+  --primary: #2563eb;
+  --border: #e5e7eb;
+  --chip: #f3f4f6;
+}
+@media (prefers-color-scheme: dark) {
+  :root{
+    --bg: #111315; --text: #e5e7eb; --card: #1b1f23; --muted: #9ca3af;
+    --primary: #60a5fa; --border: #2a2f35; --chip: #111827;
+  }
+}
+*{ box-sizing: border-box; } html, body, #root{ height:100%; }
+body{ margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial; background: var(--bg); color: var(--text); }
+.app{ max-width: 1120px; margin: 24px auto; padding: 0 16px; }
+header{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px; }
+h1{ font-size: 22px; font-weight: 700; letter-spacing: .2px; margin:0; }
+.grid{ display:grid; grid-template-columns: 1.1fr .9fr; gap:16px; }
+@media (max-width: 980px){ .grid{ grid-template-columns:1fr; } }
+.card{ background: var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 1px 0 rgba(0,0,0,.05); }
+.form .row{ display:grid; grid-template-columns: 240px 1fr; gap:12px; align-items:center; margin:8px 0; }
+@media (max-width: 640px){ .form .row{ grid-template-columns: 1fr; } }
+.label{ font-weight: 600; }
+.input, .number{ width:100%; padding:10px 12px; background:transparent; border:1px solid var(--border); border-radius:10px; color:var(--text); outline:none; }
+.small-note{ color: var(--muted); font-size: 12px; }
+.stepper{ display:inline-flex; align-items:center; gap:8px; }
+.stepper .btn{ width:36px; height:36px; border-radius:10px; border:1px solid var(--border); background: var(--chip); cursor:pointer; font-size:18px; }
+.stepper .value{ min-width:56px; text-align:center; font-weight:600; }
+.preset-group{ display:flex; flex-wrap:wrap; gap:8px; }
+.preset{ border:1px solid var(--border); background: var(--chip); padding:8px 10px; border-radius:999px; cursor:pointer; font-size:13px; }
+.preset.active{ background: var(--primary); color:#fff; border-color: transparent; }
+.results-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px; }
+.block{ border:1px solid var(--border); border-radius:12px; padding:12px; background: color-mix(in hsl, var(--card), var(--bg) 12%); }
+.block .title{ font-weight:700; margin-bottom:8px; }
+.item{ display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed var(--border); }
+.item:last-child{ border-bottom:0; }
+.total{ font-weight:700; }
+footer{ margin-top:8px; color:var(--muted); font-size:12px; text-align:center; }
