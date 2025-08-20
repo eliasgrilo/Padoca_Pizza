@@ -1,6 +1,10 @@
-# Padoca Pizza — React + Vite (Full)
+# Padoca Pizza — React + Vite (Corrected)
 
-Updated: added Save/Load recipes, import/export CSV, and all tools from original HTML.
 Run:
+
+```
 npm install
 npm run dev
+```
+
+This package includes fixes ensuring the fermentation options are visible (fieldsets/legend) and small UX improvements.
