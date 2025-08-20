@@ -38,12 +38,3 @@ h1{margin:0;font-size:20px}
   .grid{gap:10px}
   .card{padding:12px}
 }
-
-
-/* Alignment fix and improved layout for preferment inputs */
-.number-center{ text-align:center; }
-.pref-grid label{ display:flex; flex-direction:column; gap:6px; }
-
-/* Manual theme overrides when data-theme is set */
-:root[data-theme="light"]{ --bg:#f6f7fb; --text:#111827; --card:#ffffff; --muted:#6b7280; --primary:#2563eb; --border:#e5e7eb; --chip:#f3f4f6; }
-:root[data-theme="dark"]{ --bg:#0b0d0f; --text:#e6eef8; --card:#121416; --muted:#9ca3af; --primary:#60a5fa; --border:#1f2937; --chip:#111827; }

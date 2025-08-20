@@ -10,19 +10,6 @@ const PREF_SUGGESTIONS = {
 const safe = (n, d = 0) => Number.isFinite(+n) ? +n : d;
 
 export default function App() {
-  // theme (manual toggle in addition to prefers-color-scheme)
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'auto'); // 'light' | 'dark' | 'auto'
-  useEffect(() => {
-    const root = document.documentElement;
-    if(theme === 'auto'){
-      root.removeAttribute('data-theme');
-      localStorage.removeItem('theme');
-    }else{
-      root.setAttribute('data-theme', theme);
-      localStorage.setItem('theme', theme);
-    }
-  }, [theme]);
-
   // inputs
   const [doughBalls, setDoughBalls] = useState(1);
   const [ballWeight, setBallWeight] = useState(250);
@@ -212,48 +199,11 @@ export default function App() {
 
   const onFileChange = e => { const f = e.target.files?.[0]; if (f) handleImport(f); e.target.value = ""; };
 
-  
-  const exportCSV = () => {
-    const rows = [];
-    rows.push(['Configuração']);
-    rows.push(['Bolas de massa', doughBalls]);
-    rows.push(['Peso por bola (g)', ballWeight]);
-    rows.push([]);
-    rows.push(['Percentuais']);
-    rows.push(['Água %', waterP], ['Sal %', saltP], ['Óleo %', oilP], ['Azeite %', oliveOilP], ['Açúcar %', sugarP], ['Fermento %', yeastP]);
-    rows.push([]);
-    rows.push(['Prefermento', prefType]);
-    if(prefType !== 'None'){
-      rows.push(['Farinha Pref %', prefFlourP], ['Água Pref %', prefWaterP], ['Fermento Pref %', prefYeastP]);
-    }
-    rows.push([]);
-    rows.push(['Resultados por bola (g)']);
-    Object.entries(calc.byBall).forEach(([k,v])=> rows.push([k, v]));
-    rows.push([]);
-    rows.push(['Resultados totais (g)']);
-    Object.entries(calc.totals).forEach(([k,v])=> rows.push([k, v]));
-    if(prefType !== 'None'){
-      rows.push([]);
-      rows.push(['Prefermento (totais)']);
-      Object.entries(calc.prefTotals).forEach(([k,v])=> rows.push([k, v]));
-      rows.push(['Massa final (totais)']);
-      Object.entries(calc.finalTotals).forEach(([k,v])=> rows.push([k, v]));
-    }
-    const csv = rows.map(r => r.map(x => (x==null?'':String(x)).replaceAll('"','""')).map(x=>`"${x}"`).join(',')).join('\n');
-    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'padoca_calculo.csv';
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-  };
-return (
+  return (
     <div className="app">
       <header>
         <h1>Padoca Pizza — Calculadora</h1>
         <div style={{display:'flex',gap:8}}>
-          <button className="reset" onClick={()=>setTheme(t=> t==='auto'?'dark': t==='dark'?'light':'auto')}>Tema: {theme}</button>
-          <button className="reset" onClick={exportCSV}>Exportar CSV</button>
           <button className="reset" onClick={resetDefaults}>Reset padrões</button>
           <button className="reset" onClick={clearRecipes}>Limpar receitas</button>
         </div>
@@ -297,14 +247,14 @@ return (
               ))}
             </div>
             {prefType !== 'None' && (
-              <div style={{marginTop:10,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:8}}>
-                <label style={{fontSize:13,color:'var(--muted)'}}>Farinha Pref (% total farinha)
+              <div style={{marginTop:10,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:8}}>
+                <label style={{fontSize:13,color:'var(--muted)'}}>Farinha (% total farinha)
                   <input className="input" value={prefFlourP} onChange={e=>setPrefFlourP(safe(e.target.value,0))} />
                 </label>
-                <label style={{fontSize:13,color:'var(--muted)'}}>Água Pref (% pref farinha)
+                <label style={{fontSize:13,color:'var(--muted)'}}>Água (% pref farinha)
                   <input className="input" value={prefWaterP} onChange={e=>setPrefWaterP(safe(e.target.value,0))} />
                 </label>
-                <label style={{fontSize:13,color:'var(--muted)'}}>Fermento Pref (% pref farinha)
+                <label style={{fontSize:13,color:'var(--muted)'}}>Fermento (% pref farinha)
                   <input className="input" value={prefYeastP} onChange={e=>setPrefYeastP(safe(e.target.value,0))} />
                 </label>
               </div>
@@ -412,36 +362,6 @@ return (
               <div className="item"><span>Açúcar</span><span>{calc.byBall.sugar}</span></div>
               <div className="item"><span>Fermento</span><span>{calc.byBall.yeast}</span></div>
               <div className="item total"><span>Total</span><span>{calc.byBall.total}</span></div>
-              <div style={{marginTop:10}} aria-label="Visualização por bola">
-                <svg viewBox="0 0 320 120" width="100%" role="img">
-                  {(() => {
-                    const data = [
-                      ['Farinha', calc.byBall.flour],
-                      ['Água', calc.byBall.water],
-                      ['Sal', calc.byBall.salt],
-                      ['Óleo', calc.byBall.oil],
-                      ['Azeite', calc.byBall.olive],
-                      ['Açúcar', calc.byBall.sugar],
-                      ['Fermento', calc.byBall.yeast],
-                    ];
-                    const max = Math.max(...data.map(d=>d[1]||0), 1);
-                    const barW = 40, gap = 8;
-                    return data.map((d, i) => {
-                      const h = Math.round((d[1]/max)*90);
-                      const x = 10 + i*(barW+gap);
-                      const y = 100 - h;
-                      return (
-                        <g key={i}>
-                          <rect x={x} y={y} width={barW} height={h} rx="6" ry="6" fill="currentColor" opacity="0.2"></rect>
-                          <text x={x+barW/2} y="112" textAnchor="middle" fontSize="10">{d[0]}</text>
-                          <text x={x+barW/2} y={y-4} textAnchor="middle" fontSize="10">{d[1]}</text>
-                        </g>
-                      );
-                    });
-                  })()}
-                </svg>
-              </div>
-
             </div>
 
             <div className="block">
