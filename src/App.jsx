@@ -7,20 +7,25 @@ import { loadAllRecipes, saveAllRecipes } from './storage.js'
 export default function App(){
   const [inputs, setInputs] = useState({
     flour: 100,
-    water: 60,
-    sugar: 2,
+    water: 70,
+    sugar: 0,
     salt: 2.5,
     oliveOil: 1.5,
     oil: 0,
     milk: 0,
-    yeastPct: 0.2,
-    yeastType: 'IDY',
-    RT_h: 2,
-    RT_C: 24,
-    CT_h: 24,
+    butter: 0,
+    diastatic: 0,
+    RT_h: 6,
+    RT_C: 21,
+    CT_h: 48,
     CT_C: 4,
-    doughBalls: 6,
-    ballWeight: 260,
+    doughBalls: 1,
+    ballWeight: 350,
+    yeastType: {
+      ADY: { yeastPct: 0.04 },
+      IDY: { yeastPct: 0.12 },
+      CY: { yeastPct: 0.05 },
+    },
     prefermentType: 'None',
     preferment: {
       poolish: { pct: 30, hydration: 100, yeastPct: 0.05, time_h: 12, temp_C: 22 },
@@ -39,6 +44,9 @@ export default function App(){
   }
   function updatePrefermentData(next){
     setInputs(prev => ({...prev, preferment: next}))
+  }
+    function updateYeastData(next){
+    setInputs(prev => ({...prev, yeastType: next}))
   }
 
   const totalPct = useMemo(()=> {
@@ -156,14 +164,27 @@ export default function App(){
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100 p-4 text-gray-900 dark:from-zinc-950 dark:to-zinc-900 dark:text-gray-100">
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-extrabold tracking-tight">Padoca Pizza — Fermentação & Fórmulas</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">Padoca Pizza</h1>
           <div className="flex items-center gap-2">
-            <a href="https://github.com/eliasgrilo/Padoca_Pizza" className="button" target="_blank" rel="noreferrer">Original</a>
-            <button className="button primary" onClick={saveRecipe}>Salvar</button>
-            <button className="button" onClick={()=> fileRef.current?.click()}>Carregar</button>
+            <a href="https://github.com/eliasgrilo/Padoca_Pizza" className="button" target="_blank" rel="noreferrer">Original</a> 
             <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={importJSON} />
           </div>
         </header>
+
+        {/* Porcionamento */}
+        <section className="card">
+          <h2 className="section-title">Porcionamento</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block">
+              <div className="label mb-1">Dough Balls</div>
+              <input className="input text-right" type="number" inputMode="numeric" pattern="[0-9]*" value={inputs.doughBalls} onChange={(e)=> update('doughBalls', parseFloat(e.target.value))} />
+            </label>
+            <label className="block">
+              <div className="label mb-1">Ball Weight (g)</div>
+              <input className="input text-right" type="number" inputMode="decimal" pattern="[0-9]*" value={inputs.ballWeight} onChange={(e)=> update('ballWeight', parseFloat(e.target.value))} />
+            </label>
+          </div>
+        </section>
 
         {/* Tipo de Fermentação (None, Poolish, Biga, Levain) com suas células */}
         <section className="card">
@@ -181,17 +202,34 @@ export default function App(){
           <h2 className="section-title">Ingredientes</h2>
           <div className="grid-col">
             <PercentInput label="Water (%)" value={inputs.water} onChange={(v)=> update('water', v)} name="water" />
-            <PercentInput label="Sugar (%)" value={inputs.sugar} onChange={(v)=> update('sugar', v)} name="sugar" />
             <PercentInput label="Salt (%)" value={inputs.salt} onChange={(v)=> update('salt', v)} name="salt" />
-            <PercentInput label="Olive Oil (%)" value={inputs.oliveOil} onChange={(v)=> update('oliveOil', v)} name="oliveOil" />
+            <PercentInput label="Olive Oil (%)" value={inputs.oliveOil} onChange={(v)=> update('oliveOil', v)} name="oliveOil" />      
+          </div>
+        </section>
+
+        {/* Categoria 1: Ingredientes */}
+        <section className="card">
+          <h2 className="section-title">Ingredientes</h2>
+          <div className="grid-col">
+
+            <PercentInput label="Sugar (%)" value={inputs.sugar} onChange={(v)=> update('sugar', v)} name="sugar" />
             <PercentInput label="Oil (%)" value={inputs.oil} onChange={(v)=> update('oil', v)} name="oil" />
             <PercentInput label="Milk (%)" value={inputs.milk} onChange={(v)=> update('milk', v)} name="milk" />
-            <PercentInput label="Yeast (%)" value={inputs.yeastPct} onChange={(v)=> update('yeastPct', v)} name="yeastPct" />
-            <div>
-              <div className="label mb-1"></div>
-              <YeastType value={inputs.yeastType} onChange={(v)=> update('yeastType', v)} />
-            </div>
+            <PercentInput label="Butter (%)" value={inputs.butter} onChange={(v)=> update('butter', v)} name="butter" />
+            
+            <PercentInput label="Diastatic Malt (%)" value={inputs.diastatic} onChange={(v)=> update('diastatic', v)} name="diastatic" />        
           </div>
+        </section>
+
+        {/* Tipo de Fermentação (None, Poolish, Biga, Levain) com suas células */}
+        <section className="card">
+          <h2 className="section-title">Yeast Type</h2>
+          <YeastType
+            value={inputs.prefermentType}
+            onChange={(t)=> update('prefermentType', t)}
+            data={inputs.yeastType}
+            onDataChange={updateYeastData}
+          />
         </section>
 
         {/* Categoria 2: Time | Temperature */}
@@ -215,59 +253,17 @@ export default function App(){
               <input className="input text-right" type="number" inputMode="numeric" pattern="[0-9]*" value={inputs.CT_C} onChange={(e)=> update('CT_C', parseFloat(e.target.value))} />
             </label>
           </div>
-        </section>
-
-        {/* Porcionamento */}
-        <section className="card">
-          <h2 className="section-title">Porcionamento</h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="block">
-              <div className="label mb-1">Dough Balls</div>
-              <input className="input text-right" type="number" inputMode="numeric" pattern="[0-9]*" value={inputs.doughBalls} onChange={(e)=> update('doughBalls', parseFloat(e.target.value))} />
-            </label>
-            <label className="block">
-              <div className="label mb-1">Ball Weight (g)</div>
-              <input className="input text-right" type="number" inputMode="decimal" pattern="[0-9]*" value={inputs.ballWeight} onChange={(e)=> update('ballWeight', parseFloat(e.target.value))} />
-            </label>
-          </div>
-        </section>
+        </section>  
 
         {/* Ferramentas + Resumo */}
         <section className="card">
           <h2 className="section-title">Ferramentas</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+            <button className="button primary" onClick={saveRecipe}>Salvar</button>
+            <button className="button" onClick={()=> fileRef.current?.click()}>Carregar</button>
             <button className="button" onClick={clearForm}>Limpar</button>
             <button className="button" onClick={exportJSON}>Exportar JSON</button>
             <button className="button" onClick={()=> fileRef.current?.click()}>Importar JSON</button>
-          </div>
-
-          <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200 dark:bg-zinc-900 dark:ring-zinc-800">
-            <h3 className="mb-2 text-base font-semibold">Resumo</h3>
-            <dl className="grid grid-cols-2 gap-2 text-sm">
-              <dt className="opacity-70">Hydration (água+leite)</dt>
-              <dd className="text-right font-semibold">{(Number.isFinite(hydration)? hydration.toFixed(1) : '—')}%</dd>
-              <dt className="opacity-70">Salt</dt>
-              <dd className="text-right font-semibold">{(Number(inputs.salt)||0).toFixed(2)}%</dd>
-              <dt className="opacity-70">Sugar</dt>
-              <dd className="text-right font-semibold">{(Number(inputs.sugar)||0).toFixed(2)}%</dd>
-              <dt className="opacity-70">Oils (olive+oil)</dt>
-              <dd className="text-right font-semibold">{((Number(inputs.oliveOil)||0) + (Number(inputs.oil)||0)).toFixed(2)}%</dd>
-              <dt className="opacity-70">Yeast</dt>
-              <dd className="text-right font-semibold">{(Number(inputs.yeastPct)||0).toFixed(3)}%</dd>
-              <dt className="opacity-70">Total %</dt>
-              <dd className="text-right font-semibold">{(Number(totalPct)||0).toFixed(3)}%</dd>
-            </dl>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <div className="opacity-70">Total massa (g)</div><div className="text-right font-semibold">{(Number(grams.total)||0).toFixed(0)}</div>
-              <div className="opacity-70">Farinha (g)</div><div className="text-right font-semibold">{(Number(grams.flour)||0).toFixed(0)}</div>
-              <div className="opacity-70">Água (g)</div><div className="text-right font-semibold">{(Number(grams.water)||0).toFixed(0)}</div>
-              <div className="opacity-70">Leite (g)</div><div className="text-right font-semibold">{(Number(grams.milk)||0).toFixed(0)}</div>
-              <div className="opacity-70">Açúcar (g)</div><div className="text-right font-semibold">{(Number(grams.sugar)||0).toFixed(0)}</div>
-              <div className="opacity-70">Sal (g)</div><div className="text-right font-semibold">{(Number(grams.salt)||0).toFixed(0)}</div>
-              <div className="opacity-70">Azeite (g)</div><div className="text-right font-semibold">{(Number(grams.oliveOil)||0).toFixed(0)}</div>
-              <div className="opacity-70">Óleo (g)</div><div className="text-right font-semibold">{(Number(grams.oil)||0).toFixed(0)}</div>
-              <div className="opacity-70">Fermento (g)</div><div className="text-right font-semibold">{(Number(grams.yeast)||0).toFixed(1)}</div>
-            </div>
           </div>
         </section>
 
@@ -290,6 +286,47 @@ export default function App(){
               ))}
             </ul>
           )}
+        </section>
+
+        {/* Ferramentas + Resumo */}
+        <section className="card">
+          <h2 className="section-title">Proporções</h2>
+          <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200 dark:bg-zinc-900 dark:ring-zinc-800">
+            <h3 className="mb-2 text-base font-semibold">Resumo</h3>
+            <dl className="grid grid-cols-2 gap-2 text-sm">
+              <dt className="opacity-70">Hydration (água+leite)</dt>
+              <dd className="text-right font-semibold">{(Number.isFinite(hydration)? hydration.toFixed(1) : '—')}%</dd>
+              <dt className="opacity-70">Salt</dt>
+              <dd className="text-right font-semibold">{(Number(inputs.salt)||0).toFixed(2)}%</dd>
+              <dt className="opacity-70">Sugar</dt>
+              <dd className="text-right font-semibold">{(Number(inputs.sugar)||0).toFixed(2)}%</dd>
+              <dt className="opacity-70">Oils (olive+oil)</dt>
+              <dd className="text-right font-semibold">{((Number(inputs.oliveOil)||0) + (Number(inputs.oil)||0)).toFixed(2)}%</dd>
+              <dt className="opacity-70">Yeast</dt>
+              <dd className="text-right font-semibold">{(Number(inputs.yeastPct)||0).toFixed(3)}%</dd>
+              <dt className="opacity-70">Total %</dt>
+              <dd className="text-right font-semibold">{(Number(totalPct)||0).toFixed(3)}%</dd>
+            </dl>
+          </div>
+        </section>
+
+        {/* Ferramentas + Resumo */}
+        <section className="card">
+          <h2 className="section-title"></h2>
+          <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200 dark:bg-zinc-900 dark:ring-zinc-800">
+            <h3 className="mb-2 text-base font-semibold">Resumo</h3>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+              <div className="opacity-70">Total massa (g)</div><div className="text-right font-semibold">{(Number(grams.total)||0).toFixed(0)}</div>
+              <div className="opacity-70">Farinha (g)</div><div className="text-right font-semibold">{(Number(grams.flour)||0).toFixed(0)}</div>
+              <div className="opacity-70">Água (g)</div><div className="text-right font-semibold">{(Number(grams.water)||0).toFixed(0)}</div>
+              <div className="opacity-70">Leite (g)</div><div className="text-right font-semibold">{(Number(grams.milk)||0).toFixed(0)}</div>
+              <div className="opacity-70">Açúcar (g)</div><div className="text-right font-semibold">{(Number(grams.sugar)||0).toFixed(0)}</div>
+              <div className="opacity-70">Sal (g)</div><div className="text-right font-semibold">{(Number(grams.salt)||0).toFixed(0)}</div>
+              <div className="opacity-70">Azeite (g)</div><div className="text-right font-semibold">{(Number(grams.oliveOil)||0).toFixed(0)}</div>
+              <div className="opacity-70">Óleo (g)</div><div className="text-right font-semibold">{(Number(grams.oil)||0).toFixed(0)}</div>
+              <div className="opacity-70">Fermento (g)</div><div className="text-right font-semibold">{(Number(grams.yeast)||0).toFixed(1)}</div>
+            </div>
+          </div>
         </section>
 
         <footer className="pb-8 text-center text-xs opacity-70">
