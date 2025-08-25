@@ -10,7 +10,7 @@ export default function App(){
     water: 70,
     sugar: 0,
     salt: 2.5,
-    oliveOil: 1.5,
+    oliveOil: 0,
     oil: 0,
     milk: 0,
     butter: 0,
@@ -234,7 +234,7 @@ export default function App(){
 
         {/* Categoria 2: Time | Temperature */}
         <section className="card">
-          <h2 className="section-title">Time | Temperature</h2>
+          <h2 className="section-title">Maturação</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <label className="block">
               <div className="label mb-1">RT leavening (h)</div>
@@ -244,6 +244,13 @@ export default function App(){
               <div className="label mb-1">RT °C</div>
               <input className="input text-right" type="number" inputMode="numeric" pattern="[0-9]*" value={inputs.RT_C} onChange={(e)=> update('RT_C', parseFloat(e.target.value))} />
             </label>
+          </div>
+        </section>
+
+        {/* Categoria 2: Time | Temperature */}
+        <section className="card">
+          <h2 className="section-title">Fermentação</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <label className="block">
               <div className="label mb-1">CT leavening (h)</div>
               <input className="input text-right" type="number" inputMode="numeric" pattern="[0-9]*" value={inputs.CT_h} onChange={(e)=> update('CT_h', parseFloat(e.target.value))} />
@@ -278,7 +285,7 @@ export default function App(){
                 <li key={name} className="flex items-center justify-between gap-2 rounded-xl border p-2 dark:border-zinc-700">
                   <div className="font-medium">{name}</div>
                   <div className="flex items-center gap-2">
-                    <button className="button" onClick={()=> loadRecipe(name)}>Carregar</button>
+                    <button className="button primary" onClick={()=> loadRecipe(name)}>Carregar</button>
                     <button className="button" onClick={()=> renameRecipe(name)}>Renomear</button>
                     <button className="button" onClick={()=> deleteRecipe(name)}>Excluir</button>
                   </div>
@@ -307,6 +314,20 @@ export default function App(){
               <dt className="opacity-70">Total %</dt>
               <dd className="text-right font-semibold">{(Number(totalPct)||0).toFixed(3)}%</dd>
             </dl>
+          </div>
+          <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200 dark:bg-zinc-900 dark:ring-zinc-800">
+            <h3 className="mb-2 text-base font-semibold">Resumo</h3>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+              <div className="opacity-70">Total massa (g)</div><div className="text-right font-semibold">{(Number(grams.total)||0).toFixed(0)}</div>
+              <div className="opacity-70">Farinha (g)</div><div className="text-right font-semibold">{(Number(grams.flour)||0).toFixed(0)}</div>
+              <div className="opacity-70">Água (g)</div><div className="text-right font-semibold">{(Number(grams.water)||0).toFixed(0)}</div>
+              <div className="opacity-70">Leite (g)</div><div className="text-right font-semibold">{(Number(grams.milk)||0).toFixed(0)}</div>
+              <div className="opacity-70">Açúcar (g)</div><div className="text-right font-semibold">{(Number(grams.sugar)||0).toFixed(0)}</div>
+              <div className="opacity-70">Sal (g)</div><div className="text-right font-semibold">{(Number(grams.salt)||0).toFixed(0)}</div>
+              <div className="opacity-70">Azeite (g)</div><div className="text-right font-semibold">{(Number(grams.oliveOil)||0).toFixed(0)}</div>
+              <div className="opacity-70">Óleo (g)</div><div className="text-right font-semibold">{(Number(grams.oil)||0).toFixed(0)}</div>
+              <div className="opacity-70">Fermento (g)</div><div className="text-right font-semibold">{(Number(grams.yeast)||0).toFixed(1)}</div>
+            </div>
           </div>
         </section>
 
